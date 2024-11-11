@@ -14,14 +14,23 @@ namespace choreographer {
   // Line parsing
   // ========================================================================
 
+  bool Choreograph::check_if_res_exist(const std::string& name, std::string& ns) {
+    const auto it = std::find_if(servers.begin(), servers.end(),
+                                 [&name](const std::pair<const char*, std::string>& pair) {
+                                   const size_t n = std::min(strlen(pair.first), name.size());
+                                   return strncmp(pair.first, name.c_str(), n);
+                                 });
+    if (it != servers.end()) {
+      ns = std::string(it->second);
+      return true;
+    }
+    return false;
+  }
+
   void Choreograph::run_line(const std::string& cmd) {
     // Get cmd args
     std::vector<std::string> args;
     split_string(cmd, ' ', args);
-
-    for (const auto& s : args) {
-      ROS_INFO("Arg: %s", s.c_str());
-    }
 
     // Check for minimum of arguments
     if (args.size() < 2) {
@@ -29,27 +38,25 @@ namespace choreographer {
       return;
     }
 
-    const auto& resource_name = args[0];
-    const auto& action = args[1];
+    const auto& action = args[0];
+    std::string resource_name;
+    std::string resource_ns;
 
-    // Check if resource exist
-    const auto it = std::find_if(servers.begin(), servers.end(),
-                                 [&resource_name](const std::pair<const char*, std::string>& pair) {
-                                   const size_t n = std::min(strlen(pair.first), resource_name.size());
-                                   return strncmp(pair.first, resource_name.c_str(), n);
-                                 });
-    if (it == servers.end()) {
-      ROS_ERROR("Passed resource name `%s` is not registered", resource_name.c_str());
-      return;
+#define TEST_RES_EXIST resource_name = args[1]; \
+    if (!check_if_res_exist(resource_name, resource_ns)) { \
+      ROS_ERROR("Passed resource name `%s` is not registered", resource_name.c_str()); \
+      return; \
     }
 
     // Run action
     switch (str2action(action)) {
     case ActionType::CAPTURE:
-      capture_res(it->second, args);
+      TEST_RES_EXIST
+      capture_res(resource_ns, args);
       break;
     case ActionType::PLAY:
-      play_res(it->second, args);
+      TEST_RES_EXIST
+      play_res(resource_ns, args);
       break;
     case ActionType::SLEEP:
       sleep_res();
@@ -65,7 +72,9 @@ namespace choreographer {
 
   void Choreograph::capture_res(const std::string& ns, const std::vector<std::string>&) {
     ROS_INFO("Calling record service for server %s", ns.c_str());
-    _active_threads.push_back(std::make_shared<std::thread>([this, &ns]() {
+
+    // Launch threads
+    _active_threads.push_back(std::make_shared<std::thread>([this, ns]() {
       const std::string service_name = add_namespace(ActionTopics::CAPTURE, ns);
       auto client = nh.serviceClient<Capture::Request, Capture::Response>(service_name);
       if (!client.exists()) {
@@ -93,11 +102,13 @@ namespace choreographer {
   }
 
   void Choreograph::sleep_res() {
+    ROS_INFO("Waiting for %lu threads to finish ...", _active_threads.size());
     for (const auto& p : _active_threads) {
       if (p->joinable())
         p->join();
     }
     _active_threads.resize(0);
+    ROS_INFO("Done ...");
   }
 
 

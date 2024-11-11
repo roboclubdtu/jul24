@@ -27,14 +27,6 @@ namespace choreographer {
 
     void launch_node(int argc, char** argv);
 
-    // ========================================================================
-    // Resource server management
-    // ========================================================================
-    void run_line(const std::string&);
-    void capture_res(const std::string& ns, const std::vector<std::string>&);
-    void play_res(const std::string& ns, const std::vector<std::string>&);
-    void sleep_res();
-
   private:
     void clean();
 
@@ -50,6 +42,15 @@ namespace choreographer {
     // ========================================================================
     void terminal_cmd();
     void file_parsing(const char*);
+
+    // ========================================================================
+    // Resource server management
+    // ========================================================================
+    void run_line(const std::string&);
+    void capture_res(const std::string& ns, const std::vector<std::string>&);
+    void play_res(const std::string& ns, const std::vector<std::string>&);
+    void sleep_res();
+    bool check_if_res_exist(const std::string&, std::string&);
 
   private:
     ros::NodeHandle nh;
