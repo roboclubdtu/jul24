@@ -1,0 +1,7 @@
+---
+
+string default_collection = "current"
+
+string collection_name
+uint8 capture_id
+float32 play_time

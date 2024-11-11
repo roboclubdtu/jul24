@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<package format="2">
+    <name>dtu_jul24</name>
+    <version>0.1.0</version>
+    <description>DTU Christmas video code - Main package</description>
+
+    <maintainer email="meltwin158@gmail.com">Geoffrey Côte</maintainer>
+
+    <license>MIT</license>
+
+    <buildtool_depend>catkin</buildtool_depend>
+    <depend>roscpp</depend>
+    <depend>roslib</depend>
+    <depend>std_msgs</depend>
+    <depend>sensor_msgs</depend>
+    <depend>geometry_msgs</depend>
+    <depend>dtu_jul24_msgs</depend>
+
+    <depend>actionlib</depend>
+    <build_depend>message_generation</build_depend>
+    <exec_depend>message_runtime</exec_depend>
+
+</package>

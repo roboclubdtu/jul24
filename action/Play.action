@@ -1,0 +1,7 @@
+string resource
+uint8 from
+int8 to
+---
+bool success
+---
+uint8 current
