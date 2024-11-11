@@ -55,6 +55,9 @@ add_library(jul24_common STATIC
         include/dtu_jul24/common/constants.hpp
         include/dtu_jul24/common/ResourceServer.hpp
         src/common/ResourceServer.cpp
+        include/dtu_jul24/common/utils.hpp
+        src/common/utils.cpp
+        include/dtu_jul24/common/ActionType.hpp
 )
 target_include_directories(jul24_common PRIVATE "include")
 target_link_libraries(jul24_common ${catkin_LIBRARIES})
@@ -66,10 +69,11 @@ add_dependencies(jul24_common ${PROJECT_NAME}_gencpp)
 add_executable(choreo
         src/choreo/main.cpp
         include/dtu_jul24/choreo/choreograph.hpp
-        src/choreo/choreograph.cpp
-        include/dtu_jul24/pose_manager/pose_manager.hpp
-        include/dtu_jul24/common/types.hpp
+        src/choreo/server_discovery.cpp
         include/dtu_jul24/common/ServerStatus.hpp
+        src/choreo/running.cpp
+        src/choreo/node_io.cpp
+        src/choreo/constructor.cpp
 )
 target_include_directories(choreo PRIVATE "include")
 target_link_libraries(choreo ${catkin_LIBRARIES} jul24_common)

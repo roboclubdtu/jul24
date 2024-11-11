@@ -9,9 +9,6 @@ using choreographer::Choreograph;
 int main(int argc, char** argv) {
   ros::init(argc, argv, Choreograph::NODE_NAME);
   auto node = Choreograph();
-
-  while (ros::ok())
-    ros::spinOnce();
-
+  node.launch_node(argc, argv);
   ros::shutdown();
 }

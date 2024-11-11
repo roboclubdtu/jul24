@@ -6,7 +6,6 @@
 #define CONSTANTS_HPP
 
 #include <std_msgs/String.h>
-#include "dtu_jul24/common/ServerStatus.hpp"
 #include "dtu_jul24/common/types.hpp"
 
 

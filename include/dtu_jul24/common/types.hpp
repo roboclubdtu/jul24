@@ -7,30 +7,20 @@
 
 #include <std_msgs/Time.h>
 
-namespace choreographer
-{
+namespace choreographer {
 #define constchar static constexpr const char*
 
   template <typename T>
-  struct TimedResource
-  {
+  struct TimedResource {
     double time;
     T object;
   };
 
-  inline double to_double_time(const std_msgs::Time::ConstPtr& time)
-  {
+  inline double to_double_time(const std_msgs::Time::ConstPtr& time) {
     double t = 0;
     t += time->data.nsec * 1E-9;
     t += time->data.sec;
     return t;
-  }
-
-  inline std::string add_name_space(const char* txt, const char* ns)
-  {
-    std::stringstream ss;
-    ss << ns << "/" << txt;
-    return ss.str();
   }
 }
 

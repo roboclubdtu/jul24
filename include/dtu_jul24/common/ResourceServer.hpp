@@ -12,9 +12,11 @@
 
 #include "dtu_jul24/Capture.h"
 #include "dtu_jul24/PlayAction.h"
+#include "dtu_jul24/common/ActionType.hpp"
 #include "dtu_jul24/common/ResourceContainer.hpp"
-#include "dtu_jul24/common/types.hpp"
 #include "dtu_jul24/common/ServerStatus.hpp"
+#include "dtu_jul24/common/types.hpp"
+#include "dtu_jul24/common/utils.hpp"
 
 using dtu_jul24::Capture;
 using dtu_jul24::PlayAction;
@@ -28,8 +30,6 @@ namespace choreographer {
   public:
     struct Names {
       constchar TIME_TOPIC{"time"};
-      constchar CAPTURE_SERVICE{"capture"};
-      constchar PLAY_ACTION{"play"};
       constchar OUTPUT_TOPIC{"value"};
     };
 
@@ -45,7 +45,7 @@ namespace choreographer {
     explicit ResourceServer(const bool allow_capture, const char* node_namespace,
                             const char* output_topic = Names::OUTPUT_TOPIC):
       node_ns(node_namespace),
-      play_server(nh, add_name_space("play", node_ns), [this](const PlayGoal::ConstPtr& goal) {
+      play_server(nh, add_namespace(ActionTopics::PLAY, node_ns), [this](const PlayGoal::ConstPtr& goal) {
         this->play_callback(goal);
       }) {
       // Time management object
@@ -54,7 +54,7 @@ namespace choreographer {
       // Record objects
       if (allow_capture) {
         record_server = nh.advertiseService<Capture::Request, Capture::Response>(
-          put_ns(Names::CAPTURE_SERVICE),
+          put_ns(ActionTopics::CAPTURE),
           [this](Capture::Request& req,
                  Capture::Response& res) {
             return capture_callback(req, res);
@@ -78,7 +78,7 @@ namespace choreographer {
     * Add the namespace of the node to the given text
     */
     std::string put_ns(const char* txt) const {
-      return add_name_space(txt, node_ns);
+      return add_namespace(txt, node_ns);
     }
 
     /**
