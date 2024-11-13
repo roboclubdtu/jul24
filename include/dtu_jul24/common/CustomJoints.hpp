@@ -5,37 +5,30 @@
 #ifndef CUSTOM_JOINTS_HPP
 #define CUSTOM_JOINTS_HPP
 
-#include <sensor_msgs/JointState.h>
 #include <baxter_core_msgs/JointCommand.h>
+#include <sensor_msgs/JointState.h>
 #include "dtu_jul24/common/constants.hpp"
 
-using sensor_msgs::JointState;
 using baxter_core_msgs::JointCommand;
+using sensor_msgs::JointState;
 
-namespace choreographer
-{
+namespace choreographer {
   // ==========================================================================
   // Custom fields
   // ==========================================================================
-  struct CJoint
-  {
-    std::string name;
+  struct CJoint {
+    const std::string name;
     double value;
 
     CJoint operator-(const CJoint& v2) const;
   };
 
-  struct CJointState
-  {
+  struct CJointState {
     std::unordered_map<std::string, CJoint> joints;
 
-    explicit CJointState() : joints(std::unordered_map<std::string, CJoint>(0))
-    {
-    }
+    explicit CJointState() : joints(std::unordered_map<std::string, CJoint>(0)) {}
 
-    explicit CJointState(const std::unordered_map<std::string, CJoint>& map) : joints(map)
-    {
-    }
+    explicit CJointState(const std::unordered_map<std::string, CJoint>& map) : joints(map) {}
 
     explicit CJointState(const JointState::ConstPtr&);
 
@@ -44,8 +37,8 @@ namespace choreographer
     CJointState operator-(const CJointState& v2) const;
     CJointState& operator/=(const double);
     CJointState operator/(const double) const;
-    explicit operator std::string() const;
+    std::string str() const;
   };
-}
+} // namespace choreographer
 
-#endif //CUSTOM_JOINTS_HPP
+#endif // CUSTOM_JOINTS_HPP

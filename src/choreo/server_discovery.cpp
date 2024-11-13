@@ -11,12 +11,9 @@ namespace choreographer {
     const auto to_compare = std::string(RESOURCE_SERVER_STATUS);
     std::string found;
     // Check if enough length to compare
-    if (topic.size() <= to_compare.size())
-      return found;
+    if (topic.size() <= to_compare.size()) return found;
 
-    if (topic.compare(topic.size() - to_compare.size(), to_compare.size(),
-                      to_compare) != 0)
-      return found;
+    if (topic.compare(topic.size() - to_compare.size(), to_compare.size(), to_compare) != 0) return found;
     found = topic.substr(0, topic.size() - to_compare.size() - 1);
     return found;
   }
@@ -39,14 +36,14 @@ namespace choreographer {
       while (std::any_of(servers.begin(), servers.end(),
                          [&server_name](const std::pair<const char*, std::string>& p) {
                            return std::string(p.first) == server_name;
-                         }) and index < 256);
+                         }) and
+             index < 256);
       if (index >= 256) {
-        ROS_ERROR("More than 256 servers of type %s are in the list, something is wrong",
-                  info.last_msg->data.c_str());
+        ROS_ERROR("More than 256 servers of type %s are in the list, something is wrong", info.last_msg->data.c_str());
         return;
       }
       servers.emplace(server_name.c_str(), s);
-      info.initialized = true;
+      info.state = ServerState::IDLE;
 
       ROS_INFO("Registered server %s as %s", s.c_str(), server_name.c_str());
     }
@@ -64,26 +61,23 @@ namespace choreographer {
       if (auto s = get_server_prefix(topic.name); !s.empty()) {
         // Has it been discovered already ?
         if (!std::any_of(_status_sub.begin(), _status_sub.end(),
-                         [&s](const std::pair<std::string, ServerInfo>& srv) {
-                           return srv.first == s;
-                         })) {
+                         [&s](const std::pair<std::string, ServerInfo>& srv) { return srv.first == s; })) {
           ROS_INFO("Found new server %s", s.c_str());
           servers.emplace(s.c_str(), s);
 
           // Setup status sub
-          _status_sub.emplace(s, ServerInfo{nh.subscribe<ServerStatus>(
-                                              topic.name, 10,
-                                              [this,s](const ServerStatus::ConstPtr msg) {
-                                                auto& info = _status_sub[s];
-                                                info.last_msg = msg;
-                                                if (!info.initialized)
-                                                  register_server(s);
-
-                                              }),
-                                            nullptr});
+          _status_sub.emplace(s,
+                              ServerInfo{nh.subscribe<ServerStatus>(topic.name, 10,
+                                                                    [this, s](const ServerStatus::ConstPtr& msg) {
+                                                                      auto& info = _status_sub[s];
+                                                                      info.last_msg = msg;
+                                                                      if (info.state == ServerState::UNINTIALIZED)
+                                                                        register_server(s);
+                                                                    }),
+                                         nullptr});
         }
       }
     }
   }
 
-}
+} // namespace choreographer

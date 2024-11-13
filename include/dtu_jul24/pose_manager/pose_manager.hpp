@@ -8,14 +8,14 @@
 
 #include <ros/ros.h>
 #include <sensor_msgs/JointState.h>
-#include "dtu_jul24/common/types.hpp"
 #include "dtu_jul24/common/CustomJoints.hpp"
 #include "dtu_jul24/common/ResourceServer.hpp"
+#include "dtu_jul24/common/types.hpp"
 
 using sensor_msgs::JointState;
 
 namespace choreographer {
-  class PoseManager final : public ResourceServer<JointState, CJointState> {
+  class PoseManager final : public ResourceServer<JointCommand, CJointState> {
   public:
     constchar NODE_NAME{"pose_manager"};
 
@@ -29,12 +29,12 @@ namespace choreographer {
   private:
     void js_callback(const JointState::ConstPtr&);
 
-    bool capture_callback(Capture::Request&,
-                          Capture::Response&) override;
+    bool capture_callback(Capture::Request&, Capture::Response&) override;
 
     void play_callback(const PlayGoal::ConstPtr& goal) override;
 
-    JointCommand play_compute_trajectory(const CJointState& latest, const TimedResource<CJointState>& waypoint);
+    JointCommand play_compute_trajectory(const CJointState& latest, const TimedResource<CJointState>& waypoint,
+                                         const std_msgs::Time::ConstPtr& start_time);
 
   private:
     ros::NodeHandle nh; //!< Node handle for ROS interactions
@@ -46,7 +46,7 @@ namespace choreographer {
 
     //
   };
-}
+} // namespace choreographer
 
 
-#endif //POSE_MANAGER_H
+#endif // POSE_MANAGER_H

@@ -10,12 +10,12 @@
 
 
 namespace choreographer {
-    struct NameSpaces {
-        constchar JOINT_STATE{"joint_state"};
-    };
+  struct NameSpaces {
+    constchar JOINT_STATE{"joint_state"};
+  };
 
 
-#define JS_TOLERANCE 0.1
-}
+#define JS_TOLERANCE 0.01
+} // namespace choreographer
 
-#endif //CONSTANTS_HPP
+#endif // CONSTANTS_HPP

@@ -6,14 +6,16 @@
 namespace choreographer {
 
   Choreograph::Choreograph() {
-    _discovery_timer = nh.createWallTimer(ros::WallDuration(0.2), [this](const ros::WallTimerEvent&) {
-      discover_servers();
+    _discovery_timer =
+      nh.createWallTimer(ros::WallDuration(0.2), [this](const ros::WallTimerEvent&) { discover_servers(); });
+    time_publisher = nh.advertise<std_msgs::Time>("/time", 10);
+    time_timer = nh.createWallTimer(ros::WallDuration(0.1), [this](const ros::WallTimerEvent&) {
+      time_msg.data = ros::Time::now();
+      time_publisher.publish(time_msg);
     });
   }
 
-  Choreograph::~Choreograph() {
-    clean();
-  }
+  Choreograph::~Choreograph() { clean(); }
 
   void Choreograph::clean() {
     // Launch stop signals
@@ -21,16 +23,14 @@ namespace choreographer {
     ros::shutdown();
 
     // Wait for the ROS thread
-    if (ros_thread != nullptr && ros_thread->joinable())
-      ros_thread->join();
+    if (ros_thread != nullptr && ros_thread->joinable()) ros_thread->join();
 
     // Wait for child processes
     for (const auto& p : _active_threads) {
-      if (p->joinable())
-        p->join();
+      if (p->joinable()) p->join();
     }
     _active_threads.resize(0);
   }
 
 
-}
+} // namespace choreographer

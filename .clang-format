@@ -42,7 +42,6 @@ IncludeIsMainRegex: '([-_](test|unittest))?$'
 IndentCaseLabels: false
 InsertNewlineAtEOF: true
 KeepEmptyLinesAtTheStartOfBlocks: True
-LambdaBodyIndentationKind: OuterScope
 MacroBlockBegin: ''
 MacroBlockEnd: ''
 MaxEmptyLinesToKeep: 2
@@ -54,4 +53,5 @@ SpacesInConditionalStatement: false
 SpacesInCStyleCastParentheses: false
 SpacesInParentheses: false
 TabWidth: 2
+AlignEscapedNewlines: Right
 ...

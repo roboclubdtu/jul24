@@ -1,4 +1,4 @@
-string default_collection = "current"
+string default_collection = current
 
 string collection_name
 float32 play_time

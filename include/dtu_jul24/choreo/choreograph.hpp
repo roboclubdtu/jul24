@@ -6,18 +6,20 @@
 #define CHOREOGRAPH_H
 
 #include <atomic>
-#include <thread>
 #include <ros/ros.h>
 #include <std_msgs/Empty.h>
+#include <thread>
 
 #include "dtu_jul24/common/ServerStatus.hpp"
 
 namespace choreographer {
   class Choreograph {
+    enum class ServerState { UNINTIALIZED, IDLE, BUSY };
+
     struct ServerInfo {
       ros::Subscriber sub;
       ServerStatus::ConstPtr last_msg = nullptr;
-      bool initialized = false;
+      ServerState state = ServerState::UNINTIALIZED;
     };
 
   public:
@@ -57,13 +59,19 @@ namespace choreographer {
     std::atomic_bool STOP = false;
     std::shared_ptr<std::thread> ros_thread;
 
+    // Time management
+    std_msgs::Time time_msg;
+    ros::Publisher time_publisher;
+    ros::WallTimer time_timer;
+
     // Server discovery
     ros::WallTimer _discovery_timer;
     std::unordered_map<std::string, ServerInfo> _status_sub;
     std::unordered_map<const char*, std::string> servers;
 
+    // Active resources users
     std::vector<std::shared_ptr<std::thread>> _active_threads;
   };
-}
+} // namespace choreographer
 
-#endif //CHOREOGRAPH_H
+#endif // CHOREOGRAPH_H

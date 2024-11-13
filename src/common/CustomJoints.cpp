@@ -8,14 +8,13 @@
 
 namespace choreographer {
 
-  CJoint CJoint::operator-(const CJoint& v2) const {
-    return CJoint{name, value - v2.value};
-  }
+  CJoint CJoint::operator-(const CJoint& v2) const { return CJoint{name, value - v2.value}; }
 
 
   CJointState::CJointState(const JointState::ConstPtr& js) {
     for (size_t i = 0; i < js->name.size(); i++) {
-      auto& name = js->name[i];
+      ROS_DEBUG("Inserting new joint %s", js->name[i].c_str());
+      const auto name = js->name[i];
       joints.emplace(name, CJoint{name, js->position[i]});
     }
   }
@@ -25,8 +24,7 @@ namespace choreographer {
 
     // Iterate over elements
     for (const auto& [name, joint] : joints) {
-      if (auto it = v2.joints.find(name); it != v2.joints.end())
-        state.joints.emplace(name, joint - it->second);
+      if (auto it = v2.joints.find(name); it != v2.joints.end()) state.joints.emplace(name, joint - it->second);
     }
 
     return state;
@@ -47,20 +45,18 @@ namespace choreographer {
 
   bool CJointState::close_to(const CJointState& v2, double tolerance) const {
     auto diff = *this - v2;
-    return std::all_of(diff.joints.begin(), diff.joints.end(),
-                       [tolerance](const std::pair<std::string, CJoint>& pair) {
-                         return std::fabs(pair.second.value) < tolerance;
-                       });
+    return std::all_of(diff.joints.begin(), diff.joints.end(), [tolerance](const std::pair<std::string, CJoint>& pair) {
+      return std::fabs(pair.second.value) < tolerance;
+    });
   }
 
-  CJointState::operator std::string() const {
+  std::string CJointState::str() const {
     std::stringstream ss;
     ss << "[";
-    for (auto& [name, joint] : joints)
-      ss << name << "= " << joint.value << ", ";
+    for (auto& [name, joint] : joints) ss << name << "= " << joint.value << ", ";
     ss << "]";
     return ss.str();
   }
 
 
-}
+} // namespace choreographer

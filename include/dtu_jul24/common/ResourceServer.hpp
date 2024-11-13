@@ -20,8 +20,8 @@
 
 using dtu_jul24::Capture;
 using dtu_jul24::PlayAction;
-using dtu_jul24::PlayGoal;
 using dtu_jul24::PlayFeedback;
+using dtu_jul24::PlayGoal;
 using dtu_jul24::PlayResult;
 
 namespace choreographer {
@@ -34,65 +34,52 @@ namespace choreographer {
     };
 
     struct Defaults {
-      static constexpr int DEFAULT_FREQUENCY{20};
+      static constexpr int DEFAULT_FREQUENCY{5};
     };
 
-    virtual ~ResourceServer() {
-      play_server.shutdown();
-    };
+    virtual ~ResourceServer() { play_server.shutdown(); };
 
   protected:
     explicit ResourceServer(const bool allow_capture, const char* node_namespace,
-                            const char* output_topic = Names::OUTPUT_TOPIC):
-      node_ns(node_namespace),
-      play_server(nh, add_namespace(ActionTopics::PLAY, node_ns), [this](const PlayGoal::ConstPtr& goal) {
-        this->play_callback(goal);
-      }) {
-      // Time management object
-
-
+                            const char* output_topic = Names::OUTPUT_TOPIC) :
+        node_ns(node_namespace), play_server(nh, add_namespace(ActionTopics::PLAY, node_ns),
+                                             [this](const PlayGoal::ConstPtr& goal) { this->play_callback(goal); }) {
       // Record objects
       if (allow_capture) {
         record_server = nh.advertiseService<Capture::Request, Capture::Response>(
           put_ns(ActionTopics::CAPTURE),
-          [this](Capture::Request& req,
-                 Capture::Response& res) {
-            return capture_callback(req, res);
-          });
+          [this](Capture::Request& req, Capture::Response& res) { return capture_callback(req, res); });
       }
 
       // Play objects
       play_pub = nh.advertise<T>(output_topic, 10);
       play_server.start();
-      if (std::string param_name; nh.searchParam("play_freq", param_name))
-        nh.getParam(param_name, play_frequency);
+      if (std::string param_name; nh.searchParam("play_freq", param_name)) nh.getParam(param_name, play_frequency);
 
       // Resource status
       status_pub = nh.advertise<ServerStatus>(put_ns(RESOURCE_SERVER_STATUS), 10);
-      status_timer = nh.createWallTimer(ros::WallDuration(SERVER_STATUS_PERIOD), [this](const ros::WallTimerEvent&) {
-        status_pub.publish(status_msg);
-      });
+      status_timer = nh.createWallTimer(ros::WallDuration(SERVER_STATUS_PERIOD),
+                                        [this](const ros::WallTimerEvent&) { status_pub.publish(status_msg); });
+
+      // Time management object
+      time_sub =
+        nh.subscribe<std_msgs::Time>("/time", 10, [this](const std_msgs::Time::ConstPtr& time) { last_time = time; });
     }
 
     /**
-    * Add the namespace of the node to the given text
-    */
-    std::string put_ns(const char* txt) const {
-      return add_namespace(txt, node_ns);
-    }
+     * Add the namespace of the node to the given text
+     */
+    std::string put_ns(const char* txt) const { return add_namespace(txt, node_ns); }
 
     /**
      * Request to capture
      */
-    virtual bool capture_callback(Capture::Request&,
-                                  Capture::Response&) =0;
+    virtual bool capture_callback(Capture::Request&, Capture::Response&) = 0;
 
     virtual void play_callback(const PlayGoal::ConstPtr& goal) = 0;
 
   private:
-    void time_callback(const std_msgs::Time::ConstPtr& time_msg) {
-      last_time = time_msg;
-    }
+    void time_callback(const std_msgs::Time::ConstPtr& time_msg) { last_time = time_msg; }
 
   protected:
     ros::NodeHandle nh;
@@ -116,6 +103,6 @@ namespace choreographer {
     ros::Publisher play_pub;
     int play_frequency = Defaults::DEFAULT_FREQUENCY;
   };
-}
+} // namespace choreographer
 
-#endif //RESOURCE_SERVER_HPP
+#endif // RESOURCE_SERVER_HPP
