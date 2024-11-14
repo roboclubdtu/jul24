@@ -30,8 +30,9 @@ namespace choreographer {
     void js_callback(const JointState::ConstPtr&);
 
     bool capture_callback(Capture::Request&, Capture::Response&) override;
-
     void play_callback(const PlayGoal::ConstPtr& goal) override;
+    bool load_callback(LoadResource::Request&, LoadResource::Response&) override;
+    bool save_callback(SaveResource::Request&, SaveResource::Response&) override;
 
     JointCommand play_compute_trajectory(const CJointState& latest, const TimedResource<CJointState>& waypoint,
                                          const std_msgs::Time::ConstPtr& start_time);

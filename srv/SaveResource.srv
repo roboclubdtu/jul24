@@ -1,0 +1,9 @@
+string DEFAULT_COLLECTION = current
+
+string file
+string collection_name
+---
+bool SUCCEEDED = 1
+bool FAILED = 0
+bool success
+string error_msg

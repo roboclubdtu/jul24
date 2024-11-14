@@ -2,10 +2,12 @@
 // Created by meltwin on 11/11/24.
 //
 #include <actionlib/client/simple_action_client.h>
+#include <dtu_jul24/LoadResource.h>
 #include <dtu_jul24/PlayAction.h>
 #include <dtu_jul24/PlayFeedback.h>
 #include <dtu_jul24/PlayGoal.h>
 #include <dtu_jul24/PlayResult.h>
+#include <dtu_jul24/SaveResource.h>
 
 
 #include "dtu_jul24/Capture.h"
@@ -14,10 +16,12 @@
 #include "dtu_jul24/common/utils.hpp"
 
 using dtu_jul24::Capture;
+using dtu_jul24::LoadResource;
 using dtu_jul24::PlayAction;
 using dtu_jul24::PlayFeedback;
 using dtu_jul24::PlayGoal;
 using dtu_jul24::PlayResult;
+using dtu_jul24::SaveResource;
 
 namespace choreographer {
 
@@ -79,6 +83,14 @@ namespace choreographer {
     case ActionType::SLEEP:
       sleep_res();
       break;
+    case ActionType::LOAD:
+      TEST_RES_EXIST
+      load_res(resource_ns, args);
+      break;
+    case ActionType::SAVE:
+      TEST_RES_EXIST
+      save_res(resource_ns, args);
+      break;
     default:
       ROS_ERROR("Unknown action %s", action.c_str());
     }
@@ -89,15 +101,15 @@ namespace choreographer {
   // ========================================================================
 
   void Choreograph::capture_res(const std::string& ns, const std::vector<std::string>& args) {
-    ROS_INFO("Calling record service for server %s", ns.c_str());
+    ROS_INFO("Calling capture service for server %s", ns.c_str());
 
     // Make arguments
     Capture::Request req;
     req.collection_name = Capture::Request::default_collection;
     req.play_time = -1.0;
     for (size_t i = 2; i < args.size(); i += 2) {
-      if (args[i] == "-r" && i + 1 < args.size()) req.collection_name = args[i];
-      if (args[i] == "-t" && i + 1 < args.size()) req.play_time = std::stof(args[i]);
+      if (args[i] == "-r" && i + 1 < args.size()) req.collection_name = args[i + 1];
+      if (args[i] == "-t" && i + 1 < args.size()) req.play_time = std::stof(args[i + 1]);
     }
 
     // Launch threads
@@ -105,7 +117,7 @@ namespace choreographer {
       const std::string service_name = add_namespace(ActionTopics::CAPTURE, ns);
       auto client = nh.serviceClient<Capture::Request, Capture::Response>(service_name);
       if (!client.exists()) {
-        ROS_ERROR("Trying to call record service for server %s (%s) but does not exist!", ns.c_str(),
+        ROS_ERROR("Trying to call capture service for server %s (%s) but does not exist!", ns.c_str(),
                   service_name.c_str());
         return;
       }
@@ -130,9 +142,9 @@ namespace choreographer {
     goal.from = 0;
     goal.to = -1;
     for (size_t i = 2; i < args.size(); i += 2) {
-      if (args[i] == "-f" && i + 1 < args.size()) goal.from = std::stoi(args[i]);
-      if (args[i] == "-t" && i + 1 < args.size()) goal.to = std::stoi(args[i]);
-      if (args[i] == "-r" && i + 1 < args.size()) goal.resource = args[i];
+      if (args[i] == "-f" && i + 1 < args.size()) goal.from = std::stoi(args[i + 1]);
+      if (args[i] == "-t" && i + 1 < args.size()) goal.to = std::stoi(args[i + 1]);
+      if (args[i] == "-r" && i + 1 < args.size()) goal.resource = args[i + 1];
     }
 
     // Make client request
@@ -168,6 +180,78 @@ namespace choreographer {
     }
     _active_threads.resize(0);
     ROS_INFO("Done ...");
+  }
+
+  std::string make_file_name(const std::string& name) {
+    std::stringstream ss;
+    ss << name << ".rosres";
+    return ss.str();
+  }
+
+  void Choreograph::load_res(const std::string& ns, const std::vector<std::string>& args) {
+    ROS_INFO("Calling load service for server %s", ns.c_str());
+
+    // Make arguments
+    LoadResource::Request req;
+    req.collection_name = Capture::Request::default_collection;
+    req.file = make_file_name(req.collection_name);
+    for (size_t i = 2; i < args.size(); i += 2) {
+      if (args[i] == "-r" && i + 1 < args.size()) req.collection_name = args[i + 1];
+      if (args[i] == "-f" && i + 1 < args.size()) req.file = args[i + 1];
+    }
+
+    // Launch threads
+    _active_threads.push_back(std::make_shared<std::thread>([this, ns, req]() {
+      const std::string service_name = add_namespace(ActionTopics::LOAD, ns);
+      auto client = nh.serviceClient<LoadResource::Request, LoadResource::Response>(service_name);
+      if (!client.exists()) {
+        ROS_ERROR("Trying to call load service for server %s (%s) but does not exist!", ns.c_str(),
+                  service_name.c_str());
+        return;
+      }
+
+      // Make request
+      if (LoadResource::Response res; !client.call(req, res) || res.success == LoadResource::Response::FAILED) {
+        ROS_ERROR("Load failed, see the PoseManager executable for more information.");
+        ROS_ERROR("Error msg: %s", res.error_msg.c_str());
+        return;
+      }
+
+      ROS_INFO("Loaded file \"%s\" into collection \"%s\"", req.file.c_str(), req.collection_name.c_str());
+    }));
+  }
+
+  void Choreograph::save_res(const std::string& ns, const std::vector<std::string>& args) {
+    ROS_INFO("Calling save service for server %s", ns.c_str());
+
+    // Make arguments
+    SaveResource::Request req;
+    req.collection_name = Capture::Request::default_collection;
+    req.file = make_file_name(req.collection_name);
+    for (size_t i = 2; i < args.size(); i += 2) {
+      if (args[i] == "-r" && i + 1 < args.size()) req.collection_name = args[i + 1];
+      if (args[i] == "-f" && i + 1 < args.size()) req.file = args[i + 1];
+    }
+
+    // Launch threads
+    _active_threads.push_back(std::make_shared<std::thread>([this, ns, req]() {
+      const std::string service_name = add_namespace(ActionTopics::SAVE, ns);
+      auto client = nh.serviceClient<SaveResource::Request, SaveResource::Response>(service_name);
+      if (!client.exists()) {
+        ROS_ERROR("Trying to call save service for server %s (%s) but does not exist!", ns.c_str(),
+                  service_name.c_str());
+        return;
+      }
+
+      // Make request
+      if (SaveResource::Response res; !client.call(req, res) || res.success == SaveResource::Response::FAILED) {
+        ROS_ERROR("Capture failed, see the PoseManager executable for more information.");
+        ROS_ERROR("Error msg: %s", res.error_msg.c_str());
+        return;
+      }
+
+      ROS_INFO("Saved collection \"%s\" into file \"%s\"", req.collection_name.c_str(), req.file.c_str());
+    }));
   }
 
 

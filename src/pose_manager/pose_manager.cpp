@@ -115,4 +115,20 @@ namespace choreographer {
     play_server.setSucceeded(play_result, "Sequence played successfully!");
   }
 
+  bool PoseManager::load_callback(LoadResource::Request& req, LoadResource::Response& res) {
+    ROS_INFO("Loading joint trajectory from file \"%s\" into collection \"%s\"", req.file.c_str(),
+             req.collection_name.c_str());
+
+    res.success = LoadResource::Response::SUCCEEDED;
+    return true;
+  }
+
+  bool PoseManager::save_callback(SaveResource::Request& req, SaveResource::Response& res) {
+    ROS_INFO("Saving joint trajectory from collection \"%s\" into file \"%s\"", req.collection_name.c_str(),
+             req.file.c_str());
+
+    res.success = SaveResource::Response::SUCCEEDED;
+    return true;
+  }
+
 } // namespace choreographer

@@ -29,6 +29,8 @@ include_directories(${catkin_INCLUDE_DIRS})
 add_service_files(
         FILES
         Capture.srv
+        LoadResource.srv
+        SaveResource.srv
 )
 add_action_files(DIRECTORY action)
 generate_messages(

@@ -11,7 +11,9 @@
 #include <std_msgs/Time.h>
 
 #include "dtu_jul24/Capture.h"
+#include "dtu_jul24/LoadResource.h"
 #include "dtu_jul24/PlayAction.h"
+#include "dtu_jul24/SaveResource.h"
 #include "dtu_jul24/common/ActionType.hpp"
 #include "dtu_jul24/common/ResourceContainer.hpp"
 #include "dtu_jul24/common/ServerStatus.hpp"
@@ -19,10 +21,12 @@
 #include "dtu_jul24/common/utils.hpp"
 
 using dtu_jul24::Capture;
+using dtu_jul24::LoadResource;
 using dtu_jul24::PlayAction;
 using dtu_jul24::PlayFeedback;
 using dtu_jul24::PlayGoal;
 using dtu_jul24::PlayResult;
+using dtu_jul24::SaveResource;
 
 namespace choreographer {
   template <typename T, typename S>
@@ -56,14 +60,22 @@ namespace choreographer {
       play_server.start();
       if (std::string param_name; nh.searchParam("play_freq", param_name)) nh.getParam(param_name, play_frequency);
 
+      // Load and save services
+      load_server = nh.advertiseService<LoadResource::Request, LoadResource::Response>(
+        put_ns(ActionTopics::LOAD),
+        [this](LoadResource::Request& req, LoadResource::Response& res) { return load_callback(req, res); });
+      save_server = nh.advertiseService<SaveResource::Request, SaveResource::Response>(
+        put_ns(ActionTopics::SAVE),
+        [this](SaveResource::Request& req, SaveResource::Response& res) { return save_callback(req, res); });
+
       // Resource status
       status_pub = nh.advertise<ServerStatus>(put_ns(RESOURCE_SERVER_STATUS), 10);
       status_timer = nh.createWallTimer(ros::WallDuration(SERVER_STATUS_PERIOD),
                                         [this](const ros::WallTimerEvent&) { status_pub.publish(status_msg); });
 
       // Time management object
-      time_sub =
-        nh.subscribe<std_msgs::Time>("/time", 10, [this](const std_msgs::Time::ConstPtr& time) { last_time = time; });
+      time_sub = nh.subscribe<std_msgs::Time>(ActionTopics::TIME, 10,
+                                              [this](const std_msgs::Time::ConstPtr& time) { last_time = time; });
     }
 
     /**
@@ -75,8 +87,9 @@ namespace choreographer {
      * Request to capture
      */
     virtual bool capture_callback(Capture::Request&, Capture::Response&) = 0;
-
     virtual void play_callback(const PlayGoal::ConstPtr& goal) = 0;
+    virtual bool load_callback(LoadResource::Request&, LoadResource::Response&) = 0;
+    virtual bool save_callback(SaveResource::Request&, SaveResource::Response&) = 0;
 
   private:
     void time_callback(const std_msgs::Time::ConstPtr& time_msg) { last_time = time_msg; }
@@ -93,8 +106,10 @@ namespace choreographer {
     ServerStatus status_msg = init_status(ServerType::JOINT_STATE);
     ros::WallTimer status_timer;
 
-    // Capture
+    // Services
     ros::ServiceServer record_server;
+    ros::ServiceServer save_server;
+    ros::ServiceServer load_server;
 
     // Play
     actionlib::SimpleActionServer<PlayAction> play_server;
