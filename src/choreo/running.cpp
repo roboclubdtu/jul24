@@ -8,6 +8,7 @@
 #include <dtu_jul24/PlayGoal.h>
 #include <dtu_jul24/PlayResult.h>
 #include <dtu_jul24/SaveResource.h>
+#include <filesystem>
 
 
 #include "dtu_jul24/Capture.h"
@@ -200,6 +201,9 @@ namespace choreographer {
       if (args[i] == "-f" && i + 1 < args.size()) req.file = args[i + 1];
     }
 
+    // Get absolute path
+    req.file = std::filesystem::absolute(req.file);
+
     // Launch threads
     _active_threads.push_back(std::make_shared<std::thread>([this, ns, req]() {
       const std::string service_name = add_namespace(ActionTopics::LOAD, ns);
@@ -232,6 +236,9 @@ namespace choreographer {
       if (args[i] == "-r" && i + 1 < args.size()) req.collection_name = args[i + 1];
       if (args[i] == "-f" && i + 1 < args.size()) req.file = args[i + 1];
     }
+
+    // Make absolute filename
+    req.file = std::filesystem::absolute(req.file);
 
     // Launch threads
     _active_threads.push_back(std::make_shared<std::thread>([this, ns, req]() {

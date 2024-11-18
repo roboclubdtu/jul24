@@ -1,6 +1,7 @@
 //
 // Created by meltwin on 14/11/24.
 //
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include "dtu_jul24/common/utils.hpp"
@@ -68,9 +69,10 @@ namespace choreographer {
     }
 
     // Open file
-    std::ofstream outfile(filename);
+    auto p = std::filesystem::absolute(filename);
+    std::ofstream outfile(p);
     if (!outfile.is_open()) {
-      ROS_ERROR("Could not open file \"%s\" to save the joint states", filename.c_str());
+      ROS_ERROR("Could not open file \"%s\" to save the joint states", p.c_str());
       return false;
     }
 
