@@ -16,7 +16,7 @@ using sensor_msgs::JointState;
 namespace choreographer {
 
   struct BaxterJointNames {
-    constchar HEAD_NOD{"head_node"};
+    constchar HEAD_NOD{"head_nod"};
     constchar HEAD_PAN{"head_pan"};
     constchar TORSO{"torso_t0"};
     constchar LEFT_SHOULDER_0{"left_s0"};

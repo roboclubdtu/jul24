@@ -14,6 +14,7 @@ namespace choreographer {
   }
 
   void PoseManager::js_callback(const JointState::ConstPtr& msg) {
+    ROS_INFO_THROTTLE(0.5, "Received Jointstate !");
     auto joints = std::make_shared<BaxterJoints>(msg);
     if (joints->success) latest_js = joints;
   }
@@ -54,12 +55,8 @@ namespace choreographer {
     joint_cmd.mode = JointCommand::POSITION_MODE;
     joint_cmd.names.resize(0);
     joint_cmd.command.resize(0);
-
-    // Fill joint command
-    // for (auto& [name, joint] : waypoint.object->head_nod) {
-    //   joint_cmd.names.push_back(name);
-    //   joint_cmd.command.push_back(joint.value);
-    // }
+    joint_cmd.names = BaxterJoints::header_list();
+    joint_cmd.command = waypoint.object->values_list();
 
     return joint_cmd;
   }

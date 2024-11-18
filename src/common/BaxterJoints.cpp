@@ -1,13 +1,18 @@
 //
 // Created by meltwin on 14/11/24.
 //
+#include <ros/ros.h>
 #include <sstream>
+
 #include "dtu_jul24/common/BaxterJoint.hpp"
 
 namespace choreographer {
   BaxterJoints::BaxterJoints(const JointState::ConstPtr& state) {
     for (size_t i = 0; i < state->name.size() && success; i++) {
       success &= set_joint_val(state->name[i], state->position[i]);
+      if (!success) {
+        ROS_DEBUG("Invalid joint %s", state->name[i].c_str());
+      }
     }
   }
 
@@ -20,7 +25,7 @@ namespace choreographer {
   LIMB_FUNCTION(joint_func, SHOULDER_0, shoulder_0);                                                                   \
   LIMB_FUNCTION(joint_func, SHOULDER_1, shoulder_1);                                                                   \
   LIMB_FUNCTION(joint_func, ELBOW_0, elbow_0);                                                                         \
-  LIMB_FUNCTION(joint_func, ELBOW_1, elbow_0);                                                                         \
+  LIMB_FUNCTION(joint_func, ELBOW_1, elbow_1);                                                                         \
   LIMB_FUNCTION(joint_func, WRIST_0, wrist_0);                                                                         \
   LIMB_FUNCTION(joint_func, WRIST_1, wrist_1);                                                                         \
   LIMB_FUNCTION(joint_func, WRIST_2, wrist_2);

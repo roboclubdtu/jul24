@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<launch>
+    <node pkg="dtu_jul24" type="pose_manager" name="pose_manager" output="screen" args="joint_states:=/robot/joint_states value:=/robot/limb/right/joint_command"/>
+</launch>
