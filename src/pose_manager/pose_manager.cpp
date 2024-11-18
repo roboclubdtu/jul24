@@ -3,6 +3,7 @@
 //
 
 #include "dtu_jul24/pose_manager/pose_manager.hpp"
+#include "dtu_jul24/pose_manager/PoseLoader.hpp"
 
 namespace choreographer {
 
@@ -12,7 +13,10 @@ namespace choreographer {
     js_sub = nh.subscribe<JointState>(Topics::JOINT_STATE, 10, [this](auto& js) { js_callback(js); });
   }
 
-  void PoseManager::js_callback(const JointState::ConstPtr& msg) { latest_js = msg; }
+  void PoseManager::js_callback(const JointState::ConstPtr& msg) {
+    auto joints = std::make_shared<BaxterJoints>(msg);
+    if (joints->success) latest_js = joints;
+  }
 
   bool PoseManager::capture_callback([[maybe_unused]] Capture::Request& req, Capture::Response& res) {
     // Select stack
@@ -34,8 +38,8 @@ namespace choreographer {
     }
 
     // Save resource
-    resources.capture(TimedResource<CJointState>{time, CJointState(latest_js)});
-    ROS_DEBUG("Joint = %s", resources.get(0).object.str().c_str());
+    resources.capture(TimedResource<BaxterJoints::SharedPtr>{time, latest_js});
+    ROS_DEBUG("Joint = %s", resources.get(0).object->str().c_str());
 
     // Return response
     res.capture_id = index;
@@ -43,24 +47,19 @@ namespace choreographer {
     return true;
   }
 
-  JointCommand PoseManager::play_compute_trajectory(const CJointState& latest,
-                                                    const TimedResource<CJointState>& waypoint,
+  JointCommand PoseManager::play_compute_trajectory(const BaxterJoints::SharedPtr& latest,
+                                                    const TimedResource<BaxterJoints::SharedPtr>& waypoint,
                                                     const std_msgs::Time::ConstPtr& start_time) {
-    auto d_pos = (waypoint.object - latest);
-    auto dt_remaining = (waypoint.time - to_double_time(last_time) + to_double_time(start_time));
-    ROS_INFO("Remaining time: %f", dt_remaining);
-    d_pos /= (dt_remaining <= 1E-6) ? 1E12 : dt_remaining;
-
     // Reset joint command
-    joint_cmd.mode = JointCommand::VELOCITY_MODE;
+    joint_cmd.mode = JointCommand::POSITION_MODE;
     joint_cmd.names.resize(0);
     joint_cmd.command.resize(0);
 
     // Fill joint command
-    for (auto& [name, joint] : d_pos.joints) {
-      joint_cmd.names.push_back(name);
-      joint_cmd.command.push_back(joint.value);
-    }
+    // for (auto& [name, joint] : waypoint.object->head_nod) {
+    //   joint_cmd.names.push_back(name);
+    //   joint_cmd.command.push_back(joint.value);
+    // }
 
     return joint_cmd;
   }
@@ -93,21 +92,20 @@ namespace choreographer {
       // Get waypoint to reach
       ROS_INFO("Going towards joint state %lu", i);
       auto wp = resources.get(i);
-      // TimedResource<CJointState> wp{0, CJointState{}};
-      ROS_INFO("WP %lu (t=%f) = %s", i, wp.time, wp.object.str().c_str());
+      ROS_INFO("WP %lu (t=%f) = %s", i, wp.time, wp.object->str().c_str());
 
       // Send feedback
       play_feedback.current = i;
       play_server.publishFeedback(play_feedback);
 
       // Compute the velocity command
-      auto latest = CJointState(latest_js);
+      auto latest = latest_js;
       do {
         play_pub.publish(play_compute_trajectory(latest, wp, start_time));
         r.sleep();
-        latest = CJointState(latest_js);
+        latest = latest_js;
       }
-      while (!latest.close_to(wp.object) && ros::ok());
+      while (!latest->close_to(wp.object) && ros::ok());
     }
 
     ROS_INFO("Sequence played!");
@@ -118,17 +116,31 @@ namespace choreographer {
   bool PoseManager::load_callback(LoadResource::Request& req, LoadResource::Response& res) {
     ROS_INFO("Loading joint trajectory from file \"%s\" into collection \"%s\"", req.file.c_str(),
              req.collection_name.c_str());
-
-    res.success = LoadResource::Response::SUCCEEDED;
-    return true;
+    std::vector<TimedResource<BaxterJoints::SharedPtr>> joints_vector(0);
+    if (const PoseLoader pose_io; !pose_io.load_from_file(req.file, joints_vector)) {
+      ROS_ERROR("Could not load joint trajectory from file!");
+      res.success = LoadResource::Response::FAILED;
+      return false;
+    }
+    else {
+      resources.load_stack(req.collection_name, joints_vector);
+      res.success = LoadResource::Response::SUCCEEDED;
+      return true;
+    }
   }
 
   bool PoseManager::save_callback(SaveResource::Request& req, SaveResource::Response& res) {
     ROS_INFO("Saving joint trajectory from collection \"%s\" into file \"%s\"", req.collection_name.c_str(),
              req.file.c_str());
-
-    res.success = SaveResource::Response::SUCCEEDED;
-    return true;
+    if (const PoseLoader pose_io; !pose_io.save_to_file(req.file, resources.get_stack(req.collection_name))) {
+      res.success = SaveResource::Response::FAILED;
+      return false;
+    }
+    else {
+      ROS_INFO("Successfully saved trajectory !");
+      res.success = SaveResource::Response::SUCCEEDED;
+      return true;
+    }
   }
 
 } // namespace choreographer

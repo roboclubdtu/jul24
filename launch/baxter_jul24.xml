@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<launch>
+    <node pkg="dtu_jul24" name="pose_manager" output="screen"/>
+</launch>

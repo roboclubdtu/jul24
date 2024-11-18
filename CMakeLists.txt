@@ -23,8 +23,8 @@ find_package(catkin REQUIRED COMPONENTS
         geometry_msgs
         message_generation
         actionlib
+        baxter_tools
 )
-
 include_directories(${catkin_INCLUDE_DIRS})
 add_service_files(
         FILES
@@ -46,6 +46,34 @@ catkin_package(
 )
 
 # =============================================================================
+# Utils macros
+# =============================================================================
+macro(configure_exec target)
+    target_include_directories(${target} PRIVATE "include")
+    target_link_libraries(${target} ${catkin_LIBRARIES} jul24_common)
+    add_dependencies(${target} ${PROJECT_NAME}_gencpp)
+endmacro()
+
+macro(custom_target)
+    cmake_parse_arguments(ARGS "" "TARGET" "FILES" ${ARGN})
+    message("-- New target: ${ARGS_TARGET}")
+    add_executable(${ARGS_TARGET} ${ARGS_FILES} ${ARGS_UNPARSED_ARGUMENTS})
+    configure_exec(${ARGS_TARGET})
+    install(
+            TARGETS ${ARGS_TARGET}
+            DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}/${PROJECT_NAME}
+    )
+endmacro()
+
+macro(install_shell_script file)
+    message("-- New script: ${file}")
+    install(
+            FILES ${file}
+            PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ
+            DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}/${PROJECT_NAME})
+endmacro()
+
+# =============================================================================
 # Common library
 # =============================================================================
 add_library(jul24_common STATIC
@@ -60,6 +88,8 @@ add_library(jul24_common STATIC
         include/dtu_jul24/common/utils.hpp
         src/common/utils.cpp
         include/dtu_jul24/common/ActionType.hpp
+        include/dtu_jul24/common/BaxterJoint.hpp
+        src/common/BaxterJoints.cpp
 )
 target_include_directories(jul24_common PRIVATE "include")
 target_link_libraries(jul24_common ${catkin_LIBRARIES})
@@ -68,7 +98,9 @@ add_dependencies(jul24_common ${PROJECT_NAME}_gencpp)
 # =============================================================================
 # Choreographer: Run everything together and keep the timing right
 # =============================================================================
-add_executable(choreo
+custom_target(
+        TARGET choreo
+        FILES
         src/choreo/main.cpp
         include/dtu_jul24/choreo/choreograph.hpp
         src/choreo/server_discovery.cpp
@@ -76,19 +108,29 @@ add_executable(choreo
         src/choreo/running.cpp
         src/choreo/node_io.cpp
         src/choreo/constructor.cpp
+
 )
-target_include_directories(choreo PRIVATE "include")
-target_link_libraries(choreo ${catkin_LIBRARIES} jul24_common)
-add_dependencies(jul24_common ${PROJECT_NAME}_gencpp)
 
 # =============================================================================
 # Pose Manager: Joint state recorder and player
 # =============================================================================
-add_executable(pose_manager
-        include/dtu_jul24/pose_manager/pose_manager.hpp
+custom_target(TARGET pose_manager
+        FILES include/dtu_jul24/pose_manager/pose_manager.hpp
         src/pose_manager/main.cpp
         src/pose_manager/pose_manager.cpp
+        include/dtu_jul24/pose_manager/PoseLoader.hpp
+        src/pose_manager/pose_loader.cpp
 )
-target_include_directories(pose_manager PRIVATE "include")
-target_link_libraries(pose_manager ${catkin_LIBRARIES} jul24_common)
-add_dependencies(jul24_common ${PROJECT_NAME}_gencpp)
+
+# =============================================================================
+# Scripts
+# =============================================================================
+custom_target(TARGET baxter_setup FILES src/scripts/setup_baxter.cpp)
+install_shell_script(scripts/baxter_init.sh)
+install_shell_script(scripts/baxter_stop.sh)
+
+# =============================================================================
+# Other files
+# =============================================================================
+install(DIRECTORY launch/
+        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch)

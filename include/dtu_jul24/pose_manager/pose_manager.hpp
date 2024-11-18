@@ -8,6 +8,7 @@
 
 #include <ros/ros.h>
 #include <sensor_msgs/JointState.h>
+#include "dtu_jul24/common/BaxterJoint.hpp"
 #include "dtu_jul24/common/CustomJoints.hpp"
 #include "dtu_jul24/common/ResourceServer.hpp"
 #include "dtu_jul24/common/types.hpp"
@@ -15,7 +16,7 @@
 using sensor_msgs::JointState;
 
 namespace choreographer {
-  class PoseManager final : public ResourceServer<JointCommand, CJointState> {
+  class PoseManager final : public ResourceServer<JointCommand, BaxterJoints::SharedPtr> {
   public:
     constchar NODE_NAME{"pose_manager"};
 
@@ -34,14 +35,15 @@ namespace choreographer {
     bool load_callback(LoadResource::Request&, LoadResource::Response&) override;
     bool save_callback(SaveResource::Request&, SaveResource::Response&) override;
 
-    JointCommand play_compute_trajectory(const CJointState& latest, const TimedResource<CJointState>& waypoint,
+    JointCommand play_compute_trajectory(const BaxterJoints::SharedPtr& latest,
+                                         const TimedResource<BaxterJoints::SharedPtr>& waypoint,
                                          const std_msgs::Time::ConstPtr& start_time);
 
   private:
     ros::NodeHandle nh; //!< Node handle for ROS interactions
 
     // JointState management
-    JointState::ConstPtr latest_js;
+    std::shared_ptr<BaxterJoints> latest_js;
     ros::Subscriber js_sub;
     JointCommand joint_cmd;
 

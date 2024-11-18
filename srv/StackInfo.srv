@@ -1,0 +1,4 @@
+string DEFAULT_COLLECTION = current
+string collection_name
+---
+string[] output
