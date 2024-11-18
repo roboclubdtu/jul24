@@ -8,6 +8,7 @@
 #include <dtu_jul24/PlayGoal.h>
 #include <dtu_jul24/PlayResult.h>
 #include <dtu_jul24/SaveResource.h>
+#include <dtu_jul24/StackInfo.h>
 #include <filesystem>
 
 
@@ -23,6 +24,7 @@ using dtu_jul24::PlayFeedback;
 using dtu_jul24::PlayGoal;
 using dtu_jul24::PlayResult;
 using dtu_jul24::SaveResource;
+using dtu_jul24::StackInfo;
 
 namespace choreographer {
 
@@ -91,6 +93,10 @@ namespace choreographer {
     case ActionType::SAVE:
       TEST_RES_EXIST
       save_res(resource_ns, args);
+      break;
+    case ActionType::LIST:
+      TEST_RES_EXIST
+      list_res(resource_ns, args);
       break;
     default:
       ROS_ERROR("Unknown action %s", action.c_str());
@@ -258,6 +264,39 @@ namespace choreographer {
       }
 
       ROS_INFO("Saved collection \"%s\" into file \"%s\"", req.collection_name.c_str(), req.file.c_str());
+    }));
+  }
+
+  void Choreograph::list_res(const std::string& ns, const std::vector<std::string>& args) {
+    ROS_INFO("Calling list service for server %s", ns.c_str());
+
+    // Make arguments
+    StackInfo::Request req;
+    req.collection_name = Capture::Request::default_collection;
+    for (size_t i = 2; i < args.size(); i += 2) {
+      if (args[i] == "-r" && i + 1 < args.size()) req.collection_name = args[i + 1];
+    }
+
+    // Launch threads
+    _active_threads.push_back(std::make_shared<std::thread>([this, ns, req]() {
+      const std::string service_name = add_namespace(ActionTopics::INFO, ns);
+      auto client = nh.serviceClient<StackInfo::Request, StackInfo::Response>(service_name);
+      if (!client.exists()) {
+        ROS_ERROR("Trying to call list service for server %s (%s) but does not exist!", ns.c_str(),
+                  service_name.c_str());
+        return;
+      }
+
+      // Make request
+      if (StackInfo::Response res; !client.call(req, res) || res.output.empty()) {
+        ROS_ERROR("Information retrieving of resource `\"%s\" failed.", req.collection_name.c_str());
+        return;
+      }
+      else {
+        for (auto& s : res.output) {
+          ROS_INFO("%s", s.c_str());
+        }
+      }
     }));
   }
 

@@ -53,6 +53,7 @@ namespace choreographer {
     void play_res(const std::string& ns, const std::vector<std::string>&);
     void save_res(const std::string& ns, const std::vector<std::string>&);
     void load_res(const std::string& ns, const std::vector<std::string>&);
+    void list_res(const std::string& ns, const std::vector<std::string>&);
     void sleep_res();
     bool check_if_res_exist(const std::string&, std::string&);
 

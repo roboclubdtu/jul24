@@ -31,6 +31,7 @@ add_service_files(
         Capture.srv
         LoadResource.srv
         SaveResource.srv
+        StackInfo.srv
 )
 add_action_files(DIRECTORY action)
 generate_messages(

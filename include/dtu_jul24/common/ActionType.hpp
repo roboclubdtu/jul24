@@ -15,9 +15,10 @@ namespace choreographer {
     constchar PLAY{"play"};
     constchar LOAD{"load"};
     constchar SAVE{"save"};
+    constchar INFO{"info"};
   };
 
-  enum class ActionType { UNKNOWN, CAPTURE, PLAY, SLEEP, LOAD, SAVE };
+  enum class ActionType { UNKNOWN, CAPTURE, PLAY, SLEEP, LOAD, SAVE, LIST };
 
   inline ActionType str2action(const std::string& action) {
     if (action == "capture") return ActionType::CAPTURE;
@@ -25,6 +26,7 @@ namespace choreographer {
     if (action == "sleep") return ActionType::SLEEP;
     if (action == "load") return ActionType::LOAD;
     if (action == "save") return ActionType::SAVE;
+    if (action == "info") return ActionType::LIST;
     return ActionType::UNKNOWN;
   }
 } // namespace choreographer

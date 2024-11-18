@@ -14,6 +14,7 @@
 #include "dtu_jul24/LoadResource.h"
 #include "dtu_jul24/PlayAction.h"
 #include "dtu_jul24/SaveResource.h"
+#include "dtu_jul24/StackInfo.h"
 #include "dtu_jul24/common/ActionType.hpp"
 #include "dtu_jul24/common/ResourceContainer.hpp"
 #include "dtu_jul24/common/ServerStatus.hpp"
@@ -27,6 +28,7 @@ using dtu_jul24::PlayFeedback;
 using dtu_jul24::PlayGoal;
 using dtu_jul24::PlayResult;
 using dtu_jul24::SaveResource;
+using dtu_jul24::StackInfo;
 
 namespace choreographer {
   template <typename T, typename S>
@@ -48,25 +50,23 @@ namespace choreographer {
                             const char* output_topic = Names::OUTPUT_TOPIC) :
         node_ns(node_namespace), play_server(nh, add_namespace(ActionTopics::PLAY, node_ns),
                                              [this](const PlayGoal::ConstPtr& goal) { this->play_callback(goal); }) {
+#define DECLARE_SERVICE(action, type, var, callback)                                                                   \
+  var = nh.advertiseService<type::Request, type::Response>(                                                            \
+    put_ns(ActionTopics::action), [this](type::Request& req, type::Response& res) { return callback(req, res); });
+
       // Record objects
       if (allow_capture) {
-        record_server = nh.advertiseService<Capture::Request, Capture::Response>(
-          put_ns(ActionTopics::CAPTURE),
-          [this](Capture::Request& req, Capture::Response& res) { return capture_callback(req, res); });
+        DECLARE_SERVICE(CAPTURE, Capture, record_server, capture_callback)
       }
+      // Services
+      DECLARE_SERVICE(LOAD, LoadResource, load_server, load_callback)
+      DECLARE_SERVICE(SAVE, SaveResource, save_server, save_callback)
+      DECLARE_SERVICE(INFO, StackInfo, info_server, info_callback)
 
       // Play objects
       play_pub = nh.advertise<T>(output_topic, 10);
       play_server.start();
       if (std::string param_name; nh.searchParam("play_freq", param_name)) nh.getParam(param_name, play_frequency);
-
-      // Load and save services
-      load_server = nh.advertiseService<LoadResource::Request, LoadResource::Response>(
-        put_ns(ActionTopics::LOAD),
-        [this](LoadResource::Request& req, LoadResource::Response& res) { return load_callback(req, res); });
-      save_server = nh.advertiseService<SaveResource::Request, SaveResource::Response>(
-        put_ns(ActionTopics::SAVE),
-        [this](SaveResource::Request& req, SaveResource::Response& res) { return save_callback(req, res); });
 
       // Resource status
       status_pub = nh.advertise<ServerStatus>(put_ns(RESOURCE_SERVER_STATUS), 10);
@@ -90,6 +90,7 @@ namespace choreographer {
     virtual void play_callback(const PlayGoal::ConstPtr& goal) = 0;
     virtual bool load_callback(LoadResource::Request&, LoadResource::Response&) = 0;
     virtual bool save_callback(SaveResource::Request&, SaveResource::Response&) = 0;
+    virtual bool info_callback(StackInfo::Request&, StackInfo::Response&) = 0;
 
   private:
     void time_callback(const std_msgs::Time::ConstPtr& time_msg) { last_time = time_msg; }
@@ -110,6 +111,7 @@ namespace choreographer {
     ros::ServiceServer record_server;
     ros::ServiceServer save_server;
     ros::ServiceServer load_server;
+    ros::ServiceServer info_server;
 
     // Play
     actionlib::SimpleActionServer<PlayAction> play_server;

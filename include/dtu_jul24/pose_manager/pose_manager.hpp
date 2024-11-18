@@ -34,6 +34,7 @@ namespace choreographer {
     void play_callback(const PlayGoal::ConstPtr& goal) override;
     bool load_callback(LoadResource::Request&, LoadResource::Response&) override;
     bool save_callback(SaveResource::Request&, SaveResource::Response&) override;
+    bool info_callback(StackInfo::Request&, StackInfo::Response&) override;
 
     JointCommand play_compute_trajectory(const BaxterJoints::SharedPtr& latest,
                                          const TimedResource<BaxterJoints::SharedPtr>& waypoint,

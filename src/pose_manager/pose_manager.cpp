@@ -140,4 +140,21 @@ namespace choreographer {
     }
   }
 
+  bool PoseManager::info_callback(StackInfo::Request& req, StackInfo::Response& res) {
+    res.output.resize(0);
+
+    // Output lines
+    res.output.emplace_back(req.collection_name);
+    res.output.emplace_back("-------------------------");
+    auto& stack = resources.get_stack(req.collection_name);
+    std::stringstream ss;
+    for (size_t i = 0; i < stack.size(); i++) {
+      const auto& [time, object] = stack[i];
+      ss << "#" << i << " - " << time << " : " << object->str();
+      res.output.emplace_back(ss.str());
+      ss.str("");
+    }
+    return true;
+  }
+
 } // namespace choreographer
