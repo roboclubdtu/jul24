@@ -120,6 +120,7 @@ namespace choreographer {
       return false;
     }
     else {
+      ROS_INFO("Loaded %lu joint states from file", joints_vector.size());
       resources.load_stack(req.collection_name, joints_vector);
       res.success = LoadResource::Response::SUCCEEDED;
       return true;

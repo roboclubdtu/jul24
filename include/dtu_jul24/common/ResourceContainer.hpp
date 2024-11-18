@@ -92,8 +92,11 @@ namespace choreographer {
     }
 
     void load_stack(const std::string& stack_name, std::vector<T>& res_stack) {
-      if (auto it = stacks.find(stack_name); it != stacks.end())
+      if (auto it = stacks.find(stack_name); it != stacks.end()) {
         ROS_WARN("Stack %s already exist. This action is overwriting it.", stack_name.c_str());
+        stacks.erase(stack_name);
+      }
+
       stacks.emplace(stack_name, res_stack);
       select_stack(stack_name);
     }
