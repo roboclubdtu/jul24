@@ -1,4 +1,5 @@
 <?xml version="1.0"?>
 <launch>
-    <node pkg="dtu_jul24" type="pose_manager" name="pose_manager" output="screen" args="joint_states:=/robot/joint_states value:=/robot/limb/right/joint_command"/>
+    <node pkg="dtu_jul24" type="pose_manager" name="pose_manager" output="screen" args="joint_states:=/robot/joint_states value:=/robot/limb/joint_command"/>
+    <node pkg="dtu_jul24" type="baxter_cmd_duplicate" name="baxter_cmd_duplicate" output="screen" args="input:=/robot/limb/joint_command output1:=/robot/limb/right/joint_command output2:=/robot/limb/left/joint_command"/>
 </launch>

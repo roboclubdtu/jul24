@@ -127,6 +127,7 @@ custom_target(TARGET pose_manager
 # Scripts
 # =============================================================================
 custom_target(TARGET baxter_setup FILES src/scripts/setup_baxter.cpp)
+custom_target(TARGET baxter_cmd_duplicate FILES src/scripts/baxter_cmd_dupli.cpp)
 install_shell_script(scripts/baxter_init.sh)
 install_shell_script(scripts/baxter_stop.sh)
 
