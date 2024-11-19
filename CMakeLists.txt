@@ -20,7 +20,6 @@ find_package(catkin REQUIRED COMPONENTS
         roslib
         std_msgs
         sensor_msgs
-        geometry_msgs
         message_generation
         actionlib
         baxter_tools
