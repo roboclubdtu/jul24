@@ -6,6 +6,7 @@
 #define POSE_MANAGER_H
 
 
+#include <baxter_core_msgs/HeadPanCommand.h>
 #include <ros/ros.h>
 #include <sensor_msgs/JointState.h>
 #include "dtu_jul24/common/BaxterJoint.hpp"
@@ -13,6 +14,7 @@
 #include "dtu_jul24/common/ResourceServer.hpp"
 #include "dtu_jul24/common/types.hpp"
 
+using baxter_core_msgs::HeadPanCommand;
 using sensor_msgs::JointState;
 
 namespace choreographer {
@@ -22,7 +24,7 @@ namespace choreographer {
 
     struct Topics {
       constchar JOINT_STATE{"joint_states"};
-      constchar CAPTURE{"capture"};
+      constchar HEAD_CMD{"command_head_pan"};
     };
 
     PoseManager();
@@ -40,13 +42,19 @@ namespace choreographer {
                                          const TimedResource<BaxterJoints::SharedPtr>& waypoint,
                                          const std_msgs::Time::ConstPtr& start_time);
 
+    HeadPanCommand play_compute_head_cmd(const BaxterJoints::SharedPtr& latest,
+                                         const TimedResource<BaxterJoints::SharedPtr>& waypoint,
+                                         const std_msgs::Time::ConstPtr& start_time);
+
   private:
     ros::NodeHandle nh; //!< Node handle for ROS interactions
 
     // JointState management
     std::shared_ptr<BaxterJoints> latest_js;
     ros::Subscriber js_sub;
+    ros::Publisher head_cmd_pub;
     JointCommand joint_cmd;
+    HeadPanCommand head_cmd;
 
     //
   };

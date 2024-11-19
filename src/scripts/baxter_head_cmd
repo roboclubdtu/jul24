@@ -1,0 +1,80 @@
+#!/usr/bin/python3
+import threading
+import tkinter as tk
+from tkinter.constants import HORIZONTAL
+
+import numpy as np
+import rospy as ros
+from baxter_core_msgs.msg import HeadPanCommand
+from sensor_msgs.msg import JointState
+
+
+class PythonApp(threading.Thread):
+    def __init__(self):
+        threading.Thread.__init__(self)
+        self.pub = ros.Publisher("/robot/head/command_head_pan", HeadPanCommand, queue_size=10)
+        self.state_sub = ros.Subscriber("/robot/joint_states", JointState, self.state_callback)
+        self.state_v: tk.Label
+        self.cmd_v: tk.Label
+        self.slider: tk.Scale
+        self._cmd = HeadPanCommand()
+        self._cmd.speed_ratio = 0.1
+        self.start()
+
+    def quit_callback(self, origin: str):
+        self.root.quit()
+        ros.signal_shutdown(f"{origin} closed")
+
+    def state_callback(self, msg: JointState):
+        # Find head pan joint state
+        try:
+            idx = msg.name.index("head_pan")
+            self.state_v.config(text=f"{msg.position[idx]:.4f}")
+        except:
+            pass
+
+    def value_changed_callback(self, value):
+        val = float(value)
+        self.cmd_v.config(text=f"{val:.4f}")
+        self._cmd.target = val
+        self.pub.publish(self._cmd)
+
+    def run(self):
+        self.root = tk.Tk()
+        self.root.title("Baxter Head Pan Command")
+        self.root.resizable(False, False)
+        self.root.minsize(350, 180)
+        self.root.protocol("WM_DELETE_WINDOW", lambda: self.quit_callback("Tk"))
+
+        # Setting up the window
+        state_l = tk.Label(self.root, text="Pan value (State):")
+        self.state_v = tk.Label(self.root, text="NaN")
+        state_l.grid(row=0, column=0)
+        self.state_v.grid(row=0, column=1)
+
+        cmd_l = tk.Label(self.root, text="Pan value (CMD):")
+        self.cmd_v = tk.Label(self.root, text="0.0")
+        cmd_l.grid(row=1, column=0)
+        self.cmd_v.grid(row=1, column=1)
+
+        self.slider = tk.Scale(self.root, from_=-np.pi / 2, to=np.pi / 2, orient=HORIZONTAL,
+                               command=self.value_changed_callback, digits=4, resolution=1E-4, length=None)
+        self.slider.grid(row=2, column=0, columnspan=2, sticky="NSEW", padx=10)
+
+        zero_button = tk.Button(self.root, text="ZERO", command=lambda: self.slider.set(0))
+        zero_button.grid(row=3, column=0, columnspan=2)
+
+        self.root.grid_columnconfigure(0, weight=1)
+        self.root.grid_columnconfigure(1, weight=1)
+        self.root.grid_rowconfigure(0, weight=1)
+        self.root.grid_rowconfigure(1, weight=1)
+        self.root.grid_rowconfigure(2, weight=1)
+        self.root.grid_rowconfigure(3, weight=1)
+        self.root.mainloop()
+
+
+if __name__ == "__main__":
+    ros.init_node("baxter_head_cmd")
+    app = PythonApp()
+    ros.spin()
+    app.quit_callback("ros")

@@ -11,12 +11,11 @@ namespace choreographer {
     ROS_INFO("Initializing %s", PoseManager::NODE_NAME);
     // Setup ROS objects
     js_sub = nh.subscribe<JointState>(Topics::JOINT_STATE, 10, [this](auto& js) { js_callback(js); });
+    head_cmd_pub = nh.advertise<HeadPanCommand>(Topics::HEAD_CMD, 10);
   }
 
   void PoseManager::js_callback(const JointState::ConstPtr& msg) {
-    ROS_INFO_THROTTLE(0.5, "Received Jointstate !");
-    auto joints = std::make_shared<BaxterJoints>(msg);
-    if (joints->success) latest_js = joints;
+    if (const auto joints = std::make_shared<BaxterJoints>(msg); joints->success) latest_js = joints;
   }
 
   bool PoseManager::capture_callback([[maybe_unused]] Capture::Request& req, Capture::Response& res) {
@@ -61,6 +60,13 @@ namespace choreographer {
     return joint_cmd;
   }
 
+  HeadPanCommand PoseManager::play_compute_head_cmd(const BaxterJoints::SharedPtr& latest,
+                                                    const TimedResource<BaxterJoints::SharedPtr>& waypoint,
+                                                    const std_msgs::Time::ConstPtr& start_time) {
+    head_cmd.target = static_cast<float>(waypoint.object->head_pan);
+    return head_cmd;
+  }
+
 
   void PoseManager::play_callback(const PlayGoal::ConstPtr& goal) {
     ROS_INFO("Playing sequence `%s` (%d -> %d)", goal->resource.c_str(), goal->from, goal->to);
@@ -99,6 +105,7 @@ namespace choreographer {
       auto latest = latest_js;
       do {
         play_pub.publish(play_compute_trajectory(latest, wp, start_time));
+        head_cmd_pub.publish(play_compute_head_cmd(latest, wp, start_time));
         r.sleep();
         latest = latest_js;
       }
