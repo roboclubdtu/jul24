@@ -43,7 +43,7 @@ This repository is a ROS 1 package with the following known dependencies:
 | actionlib | Using action for playing resource sequences |
 | message_generation | This package use custom services and thus need the message generation library |
 | message_runtime | This package use custom services and this need the message runtime library |
-| baxter_core_msgs | This package use custom Baxter messages to send joint commands. You can find them [here](https://github.com/CentraleNantesRobotics/baxter_legacy/baxter_common)|
+| baxter_core_msgs | This package use custom Baxter messages to send joint commands. You can find them [here]([https://github.com/CentraleNantesRobotics/baxter_legacy/baxter_common](https://github.com/CentraleNantesRobotics/baxter_legacy/tree/main/baxter_common))|
 | baxter_tools | This package uses tools written specificaly for Baxter in the `baxter_init.sh` and `baxter_stop.sh` scripts. You can find them [here](https://github.com/CentraleNantesRobotics/baxter_legacy) (with usage of python3 instead of python2) | 
 
 This package was written and tested on an Ubuntu 22.04 amd64 computer with a ROS1 installation.
