@@ -40,7 +40,7 @@ namespace choreographer {
     };
 
     struct Defaults {
-      static constexpr int DEFAULT_FREQUENCY{5};
+      static constexpr int DEFAULT_FREQUENCY{20};
     };
 
     virtual ~ResourceServer() { play_server.shutdown(); };
