@@ -12,6 +12,7 @@ namespace choreographer {
     // Setup ROS objects
     js_sub = nh.subscribe<JointState>(Topics::JOINT_STATE, 10, [this](auto& js) { js_callback(js); });
     head_cmd_pub = nh.advertise<HeadPanCommand>(Topics::HEAD_CMD, 10);
+    head_cmd.speed_ratio = 0.3;
   }
 
   void PoseManager::js_callback(const JointState::ConstPtr& msg) {
@@ -47,23 +48,36 @@ namespace choreographer {
     return true;
   }
 
-  JointCommand PoseManager::play_compute_trajectory(const BaxterJoints::SharedPtr& latest,
-                                                    const TimedResource<BaxterJoints::SharedPtr>& waypoint,
-                                                    const std_msgs::Time::ConstPtr& start_time) {
+  JointCommand PoseManager::play_compute_trajectory(const TrajectoryPoint::SharedPtr& previous,
+                                                    const TrajectoryPoint::SharedPtr& current,
+                                                    const TrajectoryPoint::SharedPtr& next) {
     // Reset joint command
     joint_cmd.mode = JointCommand::POSITION_MODE;
     joint_cmd.names.resize(0);
     joint_cmd.command.resize(0);
     joint_cmd.names = BaxterJoints::header_list();
-    joint_cmd.command = waypoint.object->values_list();
 
+    // If going towards start of the sequence
+    if (previous == nullptr) {
+      ROS_INFO_THROTTLE(0.5, "Going to start!");
+      joint_cmd.command = next->js->values_list();
+      return joint_cmd;
+    }
+
+    // Make command
+    const double t = std::min(1.0, (current->time - previous->time) / (next->time - previous->time));
+    ROS_INFO("tp = %.2f, tc = %.2f, tn = %.2f => dc = %.2f | df = %.2f | t = %.2f", previous->time, current->time,
+             next->time, current->time - previous->time, next->time - previous->time, t);
+    const auto target = (1 - t) * previous->js + t * next->js;
+    joint_cmd.names = BaxterJoints::header_list();
+    joint_cmd.command = target->values_list();
     return joint_cmd;
   }
 
-  HeadPanCommand PoseManager::play_compute_head_cmd(const BaxterJoints::SharedPtr& latest,
-                                                    const TimedResource<BaxterJoints::SharedPtr>& waypoint,
-                                                    const std_msgs::Time::ConstPtr& start_time) {
-    head_cmd.target = static_cast<float>(waypoint.object->head_pan);
+  HeadPanCommand PoseManager::play_compute_head_cmd([[maybe_unused]] const TrajectoryPoint::SharedPtr& previous,
+                                                    [[maybe_unused]] const TrajectoryPoint::SharedPtr& current,
+                                                    const TrajectoryPoint::SharedPtr& next) {
+    head_cmd.target = static_cast<float>(next->js->head_pan);
     return head_cmd;
   }
 
@@ -90,26 +104,39 @@ namespace choreographer {
 
     // Iterate over the resources
     ros::Rate r(play_frequency);
-    auto start_time = last_time;
+    TrajectoryPoint::SharedPtr last_wp = nullptr;
+    TrajectoryPoint::SharedPtr next_wp = nullptr;
+    double start_time = 0.0;
     for (size_t i = 0; i <= end && ros::ok(); i++) {
+      last_wp = next_wp;
+
+      // If second point of the trajectory, update start time
+      // (if going for point 1, we assume we are at point 0)
+      if (i == 1) {
+        start_time = to_double_time(last_time);
+        last_wp->time = start_time;
+      }
+
       // Get waypoint to reach
       ROS_INFO("Going towards joint state %lu", i);
-      auto wp = resources.get(i);
-      ROS_INFO("WP %lu (t=%f) = %s", i, wp.time, wp.object->str().c_str());
+      auto [time, j] = resources.get(i);
+      next_wp = TrajectoryPoint::make((i == 0) ? 0.0 : start_time + time, j);
+      ROS_INFO("WP %lu (t=%f) = %s", i, time, j->str().c_str());
 
       // Send feedback
       play_feedback.current = i;
       play_server.publishFeedback(play_feedback);
 
-      // Compute the velocity command
-      auto latest = latest_js;
+      // Compute the joints command
+      auto latest_time = last_time;
+      TrajectoryPoint::SharedPtr current;
       do {
-        play_pub.publish(play_compute_trajectory(latest, wp, start_time));
-        head_cmd_pub.publish(play_compute_head_cmd(latest, wp, start_time));
+        current = TrajectoryPoint::make(to_double_time(last_time), latest_js);
+        play_pub.publish(play_compute_trajectory(last_wp, current, next_wp));
+        head_cmd_pub.publish(play_compute_head_cmd(last_wp, current, next_wp));
         r.sleep();
-        latest = latest_js;
       }
-      while (!latest->close_to(wp.object) && ros::ok());
+      while (!current->js->close_to(next_wp->js) && ros::ok());
     }
 
     ROS_INFO("Sequence played!");

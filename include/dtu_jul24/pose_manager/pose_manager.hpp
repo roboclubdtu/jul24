@@ -38,13 +38,29 @@ namespace choreographer {
     bool save_callback(SaveResource::Request&, SaveResource::Response&) override;
     bool info_callback(StackInfo::Request&, StackInfo::Response&) override;
 
-    JointCommand play_compute_trajectory(const BaxterJoints::SharedPtr& latest,
-                                         const TimedResource<BaxterJoints::SharedPtr>& waypoint,
-                                         const std_msgs::Time::ConstPtr& start_time);
+    /**
+     * Trajectory point structure for easier reading of the arguments
+     */
+    struct TrajectoryPoint {
+      typedef std::shared_ptr<TrajectoryPoint> SharedPtr;
 
-    HeadPanCommand play_compute_head_cmd(const BaxterJoints::SharedPtr& latest,
-                                         const TimedResource<BaxterJoints::SharedPtr>& waypoint,
-                                         const std_msgs::Time::ConstPtr& start_time);
+      double time;
+      BaxterJoints::SharedPtr js;
+
+      explicit TrajectoryPoint(const double& t, const BaxterJoints::SharedPtr& _js) : time(t), js(_js) {}
+
+      static SharedPtr make(const double& time, const BaxterJoints::SharedPtr& js) {
+        return std::make_shared<TrajectoryPoint>(time, js);
+      }
+    };
+
+    JointCommand play_compute_trajectory(const TrajectoryPoint::SharedPtr& previous,
+                                         const TrajectoryPoint::SharedPtr& current,
+                                         const TrajectoryPoint::SharedPtr& next);
+
+    HeadPanCommand play_compute_head_cmd(const TrajectoryPoint::SharedPtr& previous,
+                                         const TrajectoryPoint::SharedPtr& current,
+                                         const TrajectoryPoint::SharedPtr& next);
 
   private:
     ros::NodeHandle nh; //!< Node handle for ROS interactions

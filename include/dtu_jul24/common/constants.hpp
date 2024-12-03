@@ -15,7 +15,8 @@ namespace choreographer {
   };
 
 
-#define JS_TOLERANCE 0.01
+#define JS_TOLERANCE 0.1
+#define JS_HEAD_TOLERANCE 0.5
 } // namespace choreographer
 
 #endif // CONSTANTS_HPP
