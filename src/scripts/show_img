@@ -1,0 +1,36 @@
+#!/usr/bin/python3
+import argparse as ag
+import os
+
+import cv2
+import numpy as np
+import rospy as ros
+from cv_bridge import CvBridge
+from sensor_msgs.msg import Image
+
+
+def send_image(bridge: CvBridge, img: np.ndarray, pub: ros.Publisher):
+    msg = bridge.cv2_to_imgmsg(img, "rgb8")
+    pub.publish(msg)
+
+
+if __name__ == "__main__":
+    # Process arguments
+    parser = ag.ArgumentParser()
+    parser.add_argument("image", type=str)
+    args = parser.parse_args()
+
+    # Test for image validity
+    if not os.path.exists(args.image):
+        raise RuntimeError(f"Path {args.image} does not exist !")
+
+    img = cv2.imread(args.image)
+    # img = cv2.cvtColor(cv2.imread(args.image), cv2.COLOR_BGR2RGB)
+    ros.init_node("show_img")
+
+    pub = ros.Publisher("/robot/xdisplay", Image, queue_size=10)
+
+    bridge = CvBridge()
+    rate = ros.Timer(ros.Duration(nsecs=int(500E6)), lambda e: send_image(bridge, img, pub))
+
+    ros.spin()

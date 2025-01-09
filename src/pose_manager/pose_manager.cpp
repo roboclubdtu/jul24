@@ -12,7 +12,7 @@ namespace choreographer {
     // Setup ROS objects
     js_sub = nh.subscribe<JointState>(Topics::JOINT_STATE, 10, [this](auto& js) { js_callback(js); });
     head_cmd_pub = nh.advertise<HeadPanCommand>(Topics::HEAD_CMD, 10);
-    head_cmd.speed_ratio = 0.3;
+    head_cmd.speed_ratio = 0.1;
   }
 
   void PoseManager::js_callback(const JointState::ConstPtr& msg) {
@@ -120,7 +120,7 @@ namespace choreographer {
       // Get waypoint to reach
       ROS_INFO("Going towards joint state %lu", i);
       auto [time, j] = resources.get(i);
-      next_wp = TrajectoryPoint::make((i == 0) ? 0.0 : start_time + time, j);
+      next_wp = TrajectoryPoint::make((i == 0) ? 0.0 : last_wp->time + time, j);
       ROS_INFO("WP %lu (t=%f) = %s", i, time, j->str().c_str());
 
       // Send feedback
